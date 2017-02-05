@@ -1,0 +1,732 @@
+<!-- ********************************************************
+Main html file for users.humboldt.edu/hwhipps/calcounties/
+Last updated: 12/9/2016
+Henry Whipps and Tyler Young
+********************************************************* -->
+
+<!DOCTYPE html>
+<html>
+<head>
+ 
+ <link rel="stylesheet" href="w3.css"> <!-- W3Schools stylesheet (for NavBar) -->
+ <link rel="stylesheet" href="Leaflet.label-master/libs/leaflet/leaflet.css" /> <!-- leaflet stylesheet -->
+ <link rel="stylesheet" href="Leaflet.label-master/dist/leaflet.label.css" /> <!-- leaflet.label stylesheet -->
+ 
+ <script src="Leaflet.label-master/libs/leaflet/leaflet.js"></script> <!-- leaflet library -->
+ <script src="Leaflet.label-master/dist/leaflet.label.js"></script> <!-- leaflet.label library -->
+ <script src="Chart.js"></script> <!-- ChartJS library -->
+ <script src="CACountyData.js"></script> <!-- GeoJson file -->
+ 
+ <style>
+	h4 {
+		font-family: "Tahoma", Geneva, sans-serif;
+	}
+	h3 {
+		font-family: "Tahoma", Geneva, sans-serif;
+	}
+	h2 {
+		font-family: "Tahoma", Geneva, sans-serif;
+	}
+	h1 {
+		font-family: "Tahoma", Geneva, sans-serif;
+		font-weight: normal;
+	}
+	p {
+		font-family: "Tahoma", Geneva, sans-serif;
+		margin: 0px 5px 9px 3px;
+		font-size: 14px;
+	}
+	a {
+		font-family: "Tahoma", Geneva, sans-serif;
+	}
+</style>
+</head>
+
+<div class="w3-content" style="max-width:1500px" align="center"> <!-- Title/NavBar div -->
+
+	<!-- Header -->
+	<header>
+	  <h1 style="margin-bottom:0px;">Interactive Map of California Counties</h1>
+	  
+	  <!-- Nav-bar from w3-schools -->
+	  <div class="w3-padding-16">
+		<div class="w3-btn-bar w3-border w3-show-inline-block">
+		  <a href="index.html" class="w3-btn w3-light-grey">Map</a>
+		  <a href="datasource.html" class="w3-btn">Data Sources</a>
+		  <a href="contact.html" class="w3-btn">Contact</a>
+		</div>
+	  </div>
+	</header>
+
+</div>
+ 
+ 
+<!-- Radio Menu -->
+<div id="Menu" style = "
+						width: 200px;
+						background-color: rgba(255, 255, 255, 0.7) ;
+						border-radius: 10px;
+						box-shadow: 0 0 10px 2px #C9C9C9;
+						font-weight: bold;
+						color: #505050;
+						margin: 10px;
+						padding: 5px;
+						text-align: left;">
+<h3 style="margin-top: 0; margin-left:3px; margin-bottom: 5px;"}>Background data:</h3>
+<form name="choropleth" method="post" action="">
+  <input id="r1" type="radio" name="choropleth" value="POP_SQ_MI" checked="true" onClick="UpdateMap()" style="cursor: pointer;"><label for="r1" style="cursor: pointer;"> Population Density</label><br>
+  <input id="r2" type="radio" name="choropleth" value="PopGrowth" onClick="UpdateMap()" style="cursor: pointer;"><label for="r2" style="cursor: pointer;"> Population Growth</label><br>
+  <input id="r3" type="radio" name="choropleth" value="MedHouseIn" onClick="UpdateMap()" style="cursor: pointer;"><label for="r3" style="cursor: pointer;"> Median Household Income</label><br>
+  <input id="r4" type="radio" name="choropleth" value="LivingWage" onClick="UpdateMap()" style="cursor: pointer;"><label for="r4" style="cursor: pointer;"> Living Wage</label>
+</form>
+</div>
+
+<!-- Map Legend container-->
+<div id="Legend" style = "
+						width: 150px;
+						background-color: rgba(255, 255, 255, 0.7) ;
+						border-radius: 10px;
+						box-shadow: 0 0 10px 2px #C9C9C9;
+						color: #505050;
+						margin: 10px;
+						padding: 5px;
+						text-align: left;">
+</div>
+
+<!-- /head was here -->
+
+<body onload="UpdateMap()"> <!-- Loads map when webpage is loaded -->
+
+<!-- Full map container -->
+<div style="width: 960px; height: 600px; margin: 0 auto; position:relative;">
+	
+	<!-- Canvas location -->
+	<div id="mapid" style="width: 500px; height: 600px; float:left;"></div>
+
+	<!-- County info div -->
+	<div id="CountyInfoDiv" style="width: 460px; height: 600px; background-color:#F1F1F1; float:right; display:inline-block;">
+		<div style="width: 460px; height: 100px; background-color:#F1F1F1; margin-top:7px">
+			<table>
+				<tr>
+					<td>
+						<img id="Seal"/> <!-- County seal image -->
+					</td>
+					<td style="padding-left:20px">
+						<h3 id="Title"></h3> <!-- County name (title) -->
+					</td>
+				</tr>
+			</table>
+		</div>
+		<hr style="height:0pt; visibility:hidden; margin-bottom:0px;" /> <!-- line break -->
+		<table id="InfoTable" style="display:none;" cellpadding="3px">
+			<tr height="110px">
+				<td valign="top" width="210px" style="background-color:#E9E9E9; padding-top:8px;">
+					<p style="font-size:16px;" align="center"><b>ECONOMY</b></p>
+					<p id="HouseIncome"></p> <!-- median household income -->
+					<p id="Unemp"></p> <!-- unemployed -->
+					<p id="Poverty"></p> <!-- poverty rate -->
+					<p id="Degree"></p> <!-- bachelor's degree -->
+					<p id="LiveWage"></p> <!-- living wage -->
+					<p style="font-size:10px; margin: 5px 0px 0px 5px;"> <!-- explanation of living wage -->
+						* Necessary wage to support a single
+					</p>
+					<p style="font-size:10px; margin: 0px 0px 0px 13px;"> <!-- explanation of living wage -->
+						person with no children.
+					</p>					
+					
+				</td>
+				<td width="250px" style="background-color:#FAFAFA; padding-top:8px;">
+					<p style="font-size:16px;" align="center"><b>POPULATION</b></p>
+					<p id="CountyPop"></p> <!-- County population -->
+					<p id="CountyArea"></p> <!-- County area -->
+					<p id="MedianAge"></p> <!-- Median age -->
+					<p id="PopGrowth"></p> <!-- Population change -->
+					<div id="PieDiv"> <!-- Ethnicity pie chart -->
+						<canvas id="myChart" style="display:none;float:right" height="110px" width="250px"></canvas>
+					</div>
+					<p id="PieInstructions" style="font-size:10px; margin: 5px 0px 5px 11px;">
+						Place cursor over pie chart to view data.
+					</p>
+				</td>
+			</tr>
+			<tr>
+				<td valign="top" style="background-color:#FAFAFA; padding-top:8px;">
+					<p style="font-size:16px;" align="center"><b>LAND COVER</b></p>
+					<p id="Agriculture"></p> <!-- agriculture -->
+					<p id="Forest"></p> <!-- forest -->
+					<p id="Urban"></p> <!-- urban -->
+				</td>
+				<td valign="top" style="background-color:#E9E9E9; padding-top:8px;">
+					<p style="font-size:16px;" align="center"><b>LARGEST CITY</b></p>
+					<p id="CityTitle"></p> <!-- Largest city title -->
+					<div style="height:100px;">
+						<div style="float:left">
+							<p id="CityPopulation" style="margin-top:10px;"></p> <!-- Largest city population -->
+							<p id="Rent"></p> <!-- Median gross rent -->
+						</div>
+						<div style="float:right">
+							<img id="LocatorMap" valign="bottom" align="right" /> <!-- Largest city locator map -->
+						</div>
+					</div>
+					<p id="Precip" style="margin-top:5px;"></p> <!-- Average annual precipitation (inches) -->
+				</td>
+			</tr>
+		</table>
+	</div>
+
+	<div style="position:absolute; width:250px; height:80px; border:0px solid; top:118px; left:242px;">
+		<span style="font-weight:bold; font-size:30px; margin-left:51px;">&#8593;</span> <!-- Up arrow -->
+		<p style="margin-left:15px; font-style: italic;"> Click to change map background </p>
+	</div>
+	
+	<div style="position:absolute; width:220px; height:23px; border:0px solid; top:220px; left:272px;">
+		<p style="font-style:italic;">Click any county view its data</p>
+	</div>
+	
+	<div style="position:absolute; width:30px; height:30px; border:0px solid; top:238px; left:310px;">
+		<span style="font-size:32px;">&#8601;</span> <!-- SW arrow -->
+	</div>
+</div>
+
+<!-- Description of map -->
+<div style="width:960px; margin: 0 auto;">
+<p style="margin-top:30px; margin-left:7px;" align="left" width="960px">
+	This interactive map was designed to easily and intuitively visualize a range of data pertaining 
+	to the state of California. Created using Leaflet’s JavaScript library, the map displays economic,
+	demographic and land cover data for each county. Click on the “Data Sources” tab to view the data
+	being displayed, or click on the “Contact” tab to contact us with any questions, suggestions or 
+	further inquiries.
+</p>
+</div>
+
+<script>
+
+// Tests if device is a touch screen
+// from http://aamirshahzad.net/detect-touch-screen-with-javascript/
+function isTouchDevice() {
+    return true == ("ontouchstart" in window || window.DocumentTouch && document instanceof DocumentTouch);
+}
+if (isTouchDevice() === true) {
+    var TouchTest = "true";
+} else {
+    var TouchTest = "false";
+}
+
+
+//**********************************************************************************************
+// Preliminary Leaflet functions to create map object, draw geojson file, and create mouseover/
+// on-click events.
+
+// Creates Leaflet "mymap" variable and sets view
+var mymap = L.map('mapid', {
+				scrollWheelZoom: false,
+				touchZoom: false,
+				doubleClickZoom: false,
+				zoomControl: false,
+				dragging: false
+				})
+			.setView([37.3, -119.43], 6);
+
+var geojson;
+
+// Add geojson county data
+function UpdateMap() {
+	geojson = L.geoJson(CACounties, {
+		style: PolyStyle,
+		onEachFeature: onEachFeature
+	}).addTo(mymap);
+Legend.onAdd();
+}
+
+// On: mouseover, mouseout, click
+function onEachFeature(feature, layer) {
+	if (TouchTest == "false") // if device does not have a touch screen, add mouseover labels
+	{
+		layer.bindLabel(feature.properties.COUNTY);
+	}
+	
+	layer.on({
+		click: UpdateMap,
+    });
+	layer.on("click", DisplayCountyInfo);
+}
+
+// Resets county polygons on mouse-out
+function resetHighlight(e) {
+    geojson.resetStyle(e.target);
+}
+
+// highlight features on mouseover
+function highlightFeature(e) {
+    var layer = e.target;
+
+    layer.setStyle({
+        weight: 3,
+        color: 'gray',
+    });
+	
+    if (!L.Browser.ie && !L.Browser.opera && !L.Browser.edge) {
+        layer.bringToFront();
+    }
+}
+
+
+//**********************************************************************************************
+// Functions to stylize each county
+
+// stylize counties
+function PolyStyle(feature) {
+	var ChoroVal = document.querySelector('input[name=choropleth]:checked').value;
+	if(ChoroVal == "PopGrowth") {
+		return {
+			weight: 1,
+			opacity: 1,
+			color: 'gray',
+			fillOpacity: '1',
+			fillColor: PopGrowth(feature.properties.PopGrowth)} // PopGrowth POP_SQ_MI MedHouseIn LivingWage
+	} else if(ChoroVal == "POP_SQ_MI") {
+		return {
+			weight: 1,
+			opacity: 1,
+			color: 'gray',
+			fillOpacity: '1',
+			fillColor: POP_SQ_MI(feature.properties.POP_SQ_MI)} // PopGrowth POP_SQ_MI MedHouseIn LivingWage
+	} else if(ChoroVal == "MedHouseIn") {
+		return {
+			weight: 1,
+			opacity: 1,
+			color: 'gray',
+			fillOpacity: '1',
+			fillColor: MedHouseIn(feature.properties.MedHouseIn)} // PopGrowth POP_SQ_MI MedHouseIn LivingWage
+	} else if(ChoroVal == "LivingWage") {
+		return {
+			weight: 1,
+			opacity: 1,
+			color: 'gray',
+			fillOpacity: '1',
+			fillColor: LivingWage(feature.properties.LivingWage)}
+	} else {
+		return {
+			weight: 1,
+			opacity: 1,
+			color: 'gray',
+			fillOpacity: '1',
+			fillColor: '#f6f6f6'}
+	};
+}
+
+
+// get fill color depending on population growth
+function PopGrowth(val) {
+	var PopGrowthVal = 
+		val > 0.1 ? 'rgb(134, 204, 135)' :
+		val > 0.03  ? 'rgb(200,233,163)' :
+		val > -0.03  ? 'rgb(255, 255, 209)' :
+		val > -0.1  ? 'rgb(246,210,168)' :
+		'rgb(227,121,108)';
+	return PopGrowthVal;
+}
+
+// get fill color depending on population density
+function POP_SQ_MI(val) {
+	var PopDensityVal = 
+		val > 2000 ? 'rgb(218, 76, 78)' :
+		val > 1000  ? 'rgb(227,121,108)' :
+		val > 300  ? 'rgb(237,166,138)' :
+		val > 50  ? 'rgb(246,210,168)' :
+		'rgb(255, 255, 198)';
+	return PopDensityVal;
+}
+
+// get fill color depending on median household income
+function MedHouseIn(val) {
+	var MedHouseInVal = 
+		val > 75000 ? 'rgb(26, 119, 75)' :
+		val > 60000  ? 'rgb(70, 172, 101)' :
+		val > 50000  ? 'rgb(134, 204, 135)' :
+		val > 40000  ? 'rgb(200, 233, 163)' :
+		'rgb(255, 255, 209)';
+	return MedHouseInVal;
+}
+
+// get fill color depending on living wage
+function LivingWage(val) {
+	var LivingWageVal = 
+		val > 13.49 ? 'rgb(26, 119, 75)' :
+		val > 12.49  ? 'rgb(70, 172, 101)' :
+		val > 11.49  ? 'rgb(134, 204, 135)' :
+		val > 10.49  ? 'rgb(200, 233, 163)' :
+		'rgb(255, 255, 209)';
+	return LivingWageVal;
+}
+
+// converts a long number to a string with commas
+// (from http://stackoverflow.com/questions/2901102/how-to-print-a-number-with-commas-as-thousands-separators-in-javascript)
+function numberWithCommas(RawNum) {
+var CommaNum = RawNum.toString().replace(/\B(?=(\d{3})+(?!\d))/g, ",")
+return CommaNum;
+}
+
+
+//**********************************************************************************************
+// Leaflet controls (Legends and menu)
+var MenuBox = L.control({position: 'topright'});
+
+MenuBox.onAdd = function(mymap) {
+	var div =  document.getElementById("Menu");
+	return div;
+	};
+	
+MenuBox.addTo(mymap);
+
+
+var Legend = L.control({position: 'bottomleft'});
+
+Legend.onAdd = function(mymap) {
+	var div =  document.getElementById("Legend");
+	var ChoroVal = document.querySelector('input[name=choropleth]:checked').value;
+	if(ChoroVal == "PopGrowth") {
+	div.innerHTML = '<h4 style="margin-top: 0; margin-left:3px; margin-bottom: 5px;">Population Growth %<br>(2005 - 2015)</h4>\
+				  <table>\
+				  <tr>\
+					<td style="background-color: rgb(227,121,108); width: 30px;">&nbsp;</td>\
+					<td style="padding-left: 5px;">-14.3 to -10%</td>\
+				  </tr>\
+				  <tr>\
+					<td style="background-color: rgb(246,210,168);">&nbsp;</td>\
+					<td style="padding-left: 5px;">-10 to -3%</td>\
+				  </tr>\
+				  <tr>\
+					<td style="background-color: rgb(255,255,209);">&nbsp;</td>\
+					<td style="padding-left: 5px;">-3 to 3%</td>\
+				  </tr>\
+				  <tr>\
+					<td style="background-color: rgb(200,233,163);">&nbsp;</td>\
+					<td style="padding-left: 5px;">3 to 10%</td>\
+				  </tr>\
+				  <tr>\
+					<td style="background-color: rgb(134,204,135);">&nbsp;</td>\
+					<td style="padding-left: 5px;"> 10 to 21.3%</td>\
+				  </tr>\
+				</table>'
+				;
+	} else if(ChoroVal == "POP_SQ_MI") {
+	div.innerHTML = '<h4 style="margin-top: 0; margin-left:3px; margin-bottom: 5px;"> Persons Per Square Mile (2015)</h4>\
+				  <table>\
+				  <tr>\
+					<td style="background-color: rgb(255, 255, 198); width: 30px;">&nbsp;</td>\
+					<td style="padding-left: 5px;"> 1.5 - 50 </td>\
+				  </tr>\
+				  <tr>\
+					<td style="background-color: rgb(246,210,168);">&nbsp;</td>\
+					<td style="padding-left: 5px;"> 50 - 100 </td>\
+				  </tr>\
+				  <tr>\
+					<td style="background-color: rgb(237,166,138);">&nbsp;</td>\
+					<td style="padding-left: 5px;"> 300 - 1,000 </td>\
+				  </tr>\
+				  <tr>\
+					<td style="background-color: rgb(227,121,108);">&nbsp;</td>\
+					<td style="padding-left: 5px;"> 1,000 - 2,000 </td>\
+				  </tr>\
+				  <tr>\
+					<td style="background-color: rgb(218, 76, 78);">&nbsp;</td>\
+					<td style="padding-left: 5px;"> 2,000 - 18,451 </td>\
+				  </tr>\
+				</table>'
+				;
+	} else if(ChoroVal == "MedHouseIn") {
+	div.innerHTML = '<h4 style="margin-top: 0; margin-left:3px; margin-bottom: 5px;">Median Annual Household Income (2014)</h4>\
+				  <table style="font-size: 99%;">\
+				  <tr>\
+					<td style="background-color: rgb(255, 255, 209); width: 30px;">&nbsp;</td>\
+					<td style="padding-left: 5px;"> $35,997 - $39,999 </td>\
+				  </tr>\
+				  <tr>\
+					<td style="background-color: rgb(200, 233, 163);">&nbsp;</td>\
+					<td style="padding-left: 5px;"> $40,000 - $49,999 </td>\
+				  </tr>\
+				  <tr>\
+					<td style="background-color: rgb(134, 204, 135);">&nbsp;</td>\
+					<td style="padding-left: 5px;"> $50,000 - $59,999 </td>\
+				  </tr>\
+				  <tr>\
+					<td style="background-color: rgb(70, 172, 101);">&nbsp;</td>\
+					<td style="padding-left: 5px;"> $60,000 - $74,999 </td>\
+				  </tr>\
+				  <tr>\
+					<td style="background-color: rgb(26, 119, 75);">&nbsp;</td>\
+					<td style="padding-left: 5px;"> $75,000 - $93,854 </td>\
+				  </tr>\
+				</table>'
+				;
+	} else if(ChoroVal == "LivingWage") {
+	div.innerHTML = '<h4 style="margin-top: 0; margin-left:3px; margin-bottom: 5px;"> Living Wage<br> (Dollars Per Hour, 2014)</h4>\
+				  <table>\
+				  <tr>\
+					<td style="background-color: rgb(255, 255, 209); width: 30px;">&nbsp;</td>\
+					<td style="padding-left: 5px;"> $9.65 - $10.49 </td>\
+				  </tr>\
+				  <tr>\
+					<td style="background-color: rgb(200, 233, 163);">&nbsp;</td>\
+					<td style="padding-left: 5px;"> $10.50 - $11.49 </td>\
+				  </tr>\
+				  <tr>\
+					<td style="background-color: rgb(134, 204, 135);">&nbsp;</td>\
+					<td style="padding-left: 5px;"> $11.50 - $12.49 </td>\
+				  </tr>\
+				  <tr>\
+					<td style="background-color: rgb(70, 172, 101);">&nbsp;</td>\
+					<td style="padding-left: 5px;"> $12.50 - $13.49 </td>\
+				  </tr>\
+				  <tr>\
+					<td style="background-color: rgb(26, 119, 75);">&nbsp;</td>\
+					<td style="padding-left: 5px;"> $13.50 - $14.80 </td>\
+				  </tr>\
+				</table>'
+				;
+	};
+
+	return div;
+	};
+
+Legend.addTo(mymap);
+
+
+//**********************************************************************************************
+//Function to display county info to the right of the map (on click)
+function DisplayCountyInfo(feature) {
+	
+    feature.target.setStyle({
+        weight: 2,
+        color: 'black',
+    });
+	
+    if (!L.Browser.ie && !L.Browser.opera && !L.Browser.edge) {
+        feature.target.bringToFront();
+    }
+	
+	var InfoTable = document.getElementById("InfoTable");
+	InfoTable.style.display = "inline-block";
+	
+	
+	//**************************************
+	//County attributes from CACountyData.js
+	
+	//County name/id
+	var CountyID = feature.target.feature.properties.Code;
+	var CountyName = feature.target.feature.properties.COUNTY;
+	
+	//Population data
+	var TotalPopulation = feature.target.feature.properties.TOT_POP; // total county population
+	var AreaSqMile = feature.target.feature.properties.AREASQMI; // county area (square miles)
+	var PopSqMile = feature.target.feature.properties.POP_SQ_MILE; // population per square mile
+	var MedianAge = feature.target.feature.properties.MedianAgeE; // median age (estimate)
+	var PopGrowth = feature.target.feature.properties.PopGrowth; // population change (percentage)
+	var PopWhite = feature.target.feature.properties.White; // population: white alone
+	var PopHispanic = feature.target.feature.properties.Hispanic; // population: hispanic
+	var PopAsian = feature.target.feature.properties.Asian; // population: asian alone
+	var PopBlack = feature.target.feature.properties.AfrAmerica; // population: african american alone
+	var PopNative = feature.target.feature.properties.NatAmerica; // population: native american alone
+	var PopOther = feature.target.feature.properties.OtherEth; // population: other and 2 or more races
+	
+	//Land cover data
+	var AgSqMile = feature.target.feature.properties.AgSqMi; // square miles of agriculture
+	var AgPercent = feature.target.feature.properties.AgPercent; // percentage of county land used for agriculture
+	var ForestSqMile = feature.target.feature.properties.ForestSqMi; // square miles of forested land
+	var ForestPercent = feature.target.feature.properties.ForPercent; // percentage of county land that is forested
+	var UrbanSqMile = feature.target.feature.properties.UrbanSqMi; // square miles of urban land
+	var UrbanPercent = feature.target.feature.properties.UrbanPerce; // percentage of county land that is urban
+	
+	//Economic data
+	var LivingWage = feature.target.feature.properties.LivingWage; // living wage (single adult with no dependents - 2014)
+	var InPoverty = feature.target.feature.properties.InPoverty; // percentage of population in poverty
+	var Unemployed = feature.target.feature.properties.Unemployed; // percentage of population that is unemployed
+	var MedHouseIncome = feature.target.feature.properties.MedHouseIn; // median household income
+	var BachDegree = feature.target.feature.properties.BachDegree; // percentage of adult population with a bachelor's degree
+	
+	//Largest city data
+	var LargestCity = feature.target.feature.properties.LargestCit; // largest city in county (name)
+	var CityPop = feature.target.feature.properties.CityPop; // population of largest city
+	var GrossRent = feature.target.feature.properties.GrossRent; // median gross rent in largest city
+	var PrecipCity = feature.target.feature.properties.PrecipCity; // average annual precipitation in largest city
+	//**************************************
+	
+	//**********
+	// Seal div
+	var SealImg = document.getElementById("Seal");
+	//SealImg.width = 80;
+	//SealImg.height = 80;
+	SealImg.src = "CountySeals/"+CountyID+".png";
+	
+	//**********
+	// Title div
+	var TitleDiv = document.getElementById("Title");
+	TitleDiv.innerHTML = CountyName + " County";
+	
+	//************************
+	// Median Household Income
+	var HouseIncome = document.getElementById("HouseIncome");
+	var IncomeComma = numberWithCommas(MedHouseIncome); // put commas in number
+	HouseIncome.innerHTML = "Median household income: <br><b>$" + IncomeComma + "</b>";
+	
+	//*************
+	// Living wage
+	var LiveWage = document.getElementById("LiveWage");
+	LiveWage.innerHTML = "Living wage *: <b>$" + LivingWage + "/hour</b>";
+	
+	//************
+	// Unemployed
+	var Unemp = document.getElementById("Unemp");
+	Unemp.innerHTML = "Unemployed: <b>" + Unemployed + "%</b>";
+	
+	//*************
+	// Poverty rate
+	var Poverty = document.getElementById("Poverty");
+	Poverty.innerHTML = "Poverty rate: <b>" + InPoverty + "%</b>";
+	
+	//******************
+	// Bachelor's degree
+	var Degree = document.getElementById("Degree");
+	Degree.innerHTML = "Adults with bachelor's degree: <b>" + BachDegree + "%</b>";
+	
+	//******************
+	// County population
+	var CountyPop = document.getElementById("CountyPop");
+	var CountyPopComma = numberWithCommas(TotalPopulation); // put commas in number
+	CountyPop.innerHTML = "County population: <b>" + CountyPopComma + "</b>";
+	
+	//************
+	// County area
+	var CountyArea = document.getElementById("CountyArea");
+	var CountyAreaFormat = numberWithCommas(Math.round(AreaSqMile)); // rounds number and adds comma
+	CountyArea.innerHTML = "Area: <b>" + CountyAreaFormat + "</b> square miles";
+	
+	//************
+	// Median age
+	var MedianAgeElement = document.getElementById("MedianAge");
+	MedianAgeElement.innerHTML = "Median age: <b>" + MedianAge + "</b>";
+	
+	//*************************
+	// Race/Ethnicity pie chart
+	var canvas = document.getElementById("myChart");
+	
+	var parent = document.getElementById("PieDiv");
+	parent.removeChild(canvas);
+	
+	var canvas = document.createElement("canvas");
+	canvas.id = "myChart";
+	canvas.height = 110;
+	canvas.width = 250;
+	canvas.style.float = "right";
+	parent.appendChild(canvas);
+	
+	var data = {
+		labels: [
+			"White alone",
+			"Hispanic",
+			"Asian alone",
+			"Black alone",
+			"Native Am. alone",
+			"Other / 2 or more"
+		],
+		datasets: [
+			{
+				data: [PopWhite,
+					   PopHispanic,
+					   PopAsian,
+					   PopBlack,
+					   PopNative,
+					   PopOther
+				],
+				backgroundColor: [
+					"#ccebc5",
+					"#b3cde3",
+					"#fbb4ae",
+					"#fed9a6",
+					"#decbe4",
+					"#ffffcc"
+				],
+				hoverBackgroundColor: [
+					"#9ad78c",
+					"#7ba8ce",
+					"#f77165",
+					"#fdb95a",
+					"#be99ca",
+					"#ffff80"
+				]
+			}],
+	};
+
+	// Pie chart
+	var myPieChart = new Chart(canvas,{
+		type: 'pie',
+		data: data,
+		// add commas to pie chart tooltips:
+		// (from https://github.com/chartjs/Chart.js/issues/2322)
+		options: {
+			tooltips: {
+			  callbacks: {
+					label: function(tooltipItem, data) {
+						var value = data.datasets[0].data[tooltipItem.index];
+						value = value.toString();
+						value = value.split(/(?=(?:...)*$)/);
+						value = value.join(',');
+						return value;
+					}
+			  } // end callbacks:
+			}, //end tooltips
+		}
+	});
+
+	//************
+	// Agriculture
+	var Agriculture = document.getElementById("Agriculture");
+	var AgFormat = numberWithCommas(Math.round(AgSqMile)); // rounds number and adds commas
+	Agriculture.innerHTML = "<u>Agricultural land:</u> <br><b>" + AgFormat + " </b>square miles <b><br>" + AgPercent + "%</b> of county";
+	
+	//*******
+	// Forest
+	var Forest = document.getElementById("Forest");
+	var ForestFormat = numberWithCommas(Math.round(ForestSqMile)); // rounds number and adds commas
+	Forest.innerHTML = "<u>Forested land:</u> <br><b>" + ForestFormat + " </b>square miles <b><br>" + ForestPercent + "%</b> of county";
+	
+	//******
+	// Urban
+	var Urban = document.getElementById("Urban");
+	var UrbanFormat = numberWithCommas(Math.round(UrbanSqMile)); // rounds number and adds commas
+	Urban.innerHTML = "<u>Urban land:</u> <br><b>" + UrbanFormat + " </b>square miles <b><br>" + UrbanPercent + "%</b> of county";
+	
+	//*************************
+	// Most populous city title	
+	var CityTitle = document.getElementById("CityTitle");
+	CityTitle.innerHTML = "Most populous city: <b>" + LargestCity + "</b>";
+	
+	//******************************
+	// Most populous city population	
+	var CityPopulation = document.getElementById("CityPopulation");
+	var CityPopComma = numberWithCommas(CityPop); // put commas in number
+	CityPopulation.innerHTML = "City population: <br><b>" + CityPopComma + "</b>";
+	
+	//******************
+	// Median gross rent	
+	var Rent = document.getElementById("Rent");
+	var RentComma = numberWithCommas(GrossRent); // put commas in number
+	Rent.innerHTML = "Median Gross Rent: <br><b>$" + RentComma + "</b>";
+	
+	//**************************************
+	// Average annual precipitation (inches)
+	var Precip = document.getElementById("Precip");
+	PrecipRound = Math.round(PrecipCity * 10) / 10;
+	Precip.innerHTML = "Average annual precipitation: <br><b>" + PrecipRound + " inches</b>";
+	
+	//*********************************
+	// Locator Map (most populous city)
+	var LocatorImg = document.getElementById("LocatorMap");
+	LocatorImg.src = "LocatorMaps/"+CountyID+".png";
+}
+
+</script>
+
+</body>
+</html>
